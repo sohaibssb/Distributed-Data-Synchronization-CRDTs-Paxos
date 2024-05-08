@@ -1,4 +1,4 @@
-# Distributed-Data-Synchronization-Using-Paxos-CRDTs
+# Distributed-Data-Synchronization-CRDTs-Paxos
 Develop Dynamic Method for data consistency in distributed systems using advantages of CRDTs and Paxos Algorithms
 
 Programmed by Sohaibssb for Master degree research under subject "Methods of Syncretization Data in Distribution System" at Bauman University, Moscow. 2023/2024
