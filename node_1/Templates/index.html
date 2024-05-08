@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin:0 auto;
+            padding: 20px;
+        }
+
+        .herobanner {
+            width: 100%;
+            text-align: center;
+            background: #ebebeb;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+        .topInfo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .innerFormNumber form#person-form {
+            padding: 30px;
+            background: #fff;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        form#person-form .formInput label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: inline-block;
+            width: 100%;
+        }
+
+        form#person-form span.inNerInput {
+            width: 100%;
+            display: inline-block;
+            position: relative;
+        }
+
+        form#person-form span.inNerInput input {
+            padding: 14px;
+            font-size: 18px;
+            line-height: normal;
+            padding-right: 130px;
+            border-radius: 6px;
+            margin: 0;
+        }
+
+        .datanocketList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            flex-direction: column;
+        }
+
+        .datanocketList .primary {
+            width: 50%;
+        }
+
+        .datanocketList .secondary {
+            width: 50%;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        form#person-form span.inNerInput button {
+            position: absolute;
+            width: 150px;
+            padding: 14px;
+            top: 4px;
+            right: 4px;
+            border-radius: 6px;
+            transition: 0.4s ease-in-out;
+        }
+        .secondarySidebar {
+            width: 100%;
+            max-width: 300px;
+            float: right;
+        }
+        
+        .secondarySidebar ul#socket-list, .datanocketList ul  {
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #e3e3e3;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow: auto;
+        }
+
+        .primary {
+            width: calc(100% - 310px);
+            float: left;
+        }
+
+        .secondarySidebar h2 {
+            margin-top: 0;
+        }
+
+        .secondarySidebar ul#socket-list li, .datanocketList ul li  {
+            line-height: 33px;
+            border-bottom: 1px solid #e9e9e9;
+        }
+
+        .datanocketList ul li:last-child , .secondarySidebar ul#socket-list li:last-child {
+            border: none;
+        }
+        .datanocketList ul {
+            display: flex;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <section class="herobanner">
+        <div class="container">
+            <h2>Highest Number <span id="highest-number"></span></h2>
+        </div>
+    </section>
+
+    <section class="innerFormNumber">
+        <div class="container">
+            <div class="primary">
+                <h3>Person Data</h3>
+                <form id="person-form">
+                    <div class="formInput">
+                        <label for="name">Name:</label>
+                        <span class="inNerInput">
+                            <input type="text" id="name" name="name" >
+                            <button type="button" onclick="addPerson()">Add Person</button>
+                        </span>
+                        <span class="error-message" id="name-error"></span>
+                    </div>
+                    <div class="formInput">
+                        <label for="name">Number:</label>
+                        <span class="inNerInput">
+                            <input type="number" id="number" name="number" >
+                            <button type="button" onclick="saveNumber()">Save Number Only</button>
+                        </span>
+                        <span class="error-message" id="number-error"></span>
+                    </div>
+                </form>
+                <div class="datanocketList">
+                    <h3>Person Name</h3>
+                    <ul>
+                        <li  id="data-list"></li>
+                    </ul>
+                </div>                
+            </div>
+            <div class="secondarySidebar">
+                <h3>Active Sockets</h3>
+                <ul id="socket-list"></ul>
+            </div>
+        </div>
+    </section>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <script>
+        var main_ip = '{{data.ip}}';
+        var main_port = '{{data.port}}';
+        var url = `http://${main_ip}:${main_port}`;
+        var socket = io.connect(url);
+    
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            socket.emit('get_socket_list');  // Request list of active sockets
+            getData(); // Request data initially
+        });
+    
+        socket.on('socket_list', function(data) {
+            console.log('Socket list received:', data);
+            // Display the list of active sockets
+            var socketList = document.getElementById('socket-list');
+            socketList.innerHTML = '';
+            data.sockets.forEach(function(port) {
+                var item = document.createElement('li');
+                item.textContent = `Socket ${port}`;
+                socketList.appendChild(item);
+            });
+        });
+    
+        socket.on('data', function(data) {
+            console.log('Data received:', data);
+            // Update the data list
+            updateDataList(data.data);
+        });
+        socket.on('highest_number', function(data) {
+        console.log('Highest number received:', data);
+        // Display the highest number
+            var highestNumberDiv = document.getElementById('highest-number');
+            highestNumberDiv.textContent = data.number;
+        });
+
+        function updateDataList(data) {
+            var dataList = document.getElementById('data-list');
+            dataList.innerHTML = '';  // Clear existing data list
+            var names = data.map(person => person.name).join(', ');
+            dataList.textContent = names;
+        }
+
+        async function fetchData(url, number) {
+            let isValid = false;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        proposal_number: number,
+                        value: 1
+                    })
+                });
+                const data = await response.json();
+                isValid = data.accepted === true;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+            return isValid;
+        }
+    
+        function addPerson() {
+            var nameInput = document.getElementById('name');
+            var numberInput = document.getElementById('number');
+            var name = nameInput.value.trim();
+            var number = 1;
+    
+            var isValid = true;
+    
+            // Validate Name
+            if (name === "") {
+                document.getElementById('name-error').textContent = "Name is required.";
+                isValid = false;
+            } else {
+                document.getElementById('name-error').textContent = "";
+            }
+    
+            // Validate Number
+            if (number === "") {
+                document.getElementById('number-error').textContent = "Number is required.";
+                isValid = false;
+            } else if (isNaN(number)) {
+                document.getElementById('number-error').textContent = "Number must be a valid number.";
+                isValid = false;
+            } else {
+                document.getElementById('number-error').textContent = "";
+            }
+    
+            if (isValid) {
+                socket.emit('update_data', {name: name, number: 1});
+                nameInput.value = '';
+                numberInput.value = '';
+            }
+        }
+        
+        function saveNumber() {
+            var numberInput = document.getElementById('number');
+            var number = numberInput.value.trim();
+
+            var isValid = true;
+
+            // Validate Number
+            if (number === "") {
+                document.getElementById('number-error').textContent = "Number is required.";
+                isValid = false;
+            } else if (isNaN(number)) {
+                document.getElementById('number-error').textContent = "Number must be a valid number.";
+                isValid = false;
+            } else {
+                document.getElementById('number-error').textContent = "";
+            }
+            isValid =  fetchData(url+'/accept', number);
+            // try {
+            //     const response = await fetch(url, {
+            //         method: 'POST',
+            //         headers: {
+            //             'Content-Type': 'application/json'
+            //         },
+            //         body: JSON.stringify({
+            //             proposal_number: number,
+            //             value: 1
+            //         })
+            //     });
+            //     const data = await response.json();
+            //     if (data.accepted === true) {
+            //         isValid = true;
+            //     } else {
+            //         isValid = false;
+            //     }
+            // } catch (error) {
+            //     console.error('Error fetching data:', error);
+            // }
+            if (isValid) {
+                socket.emit('update_data', {name: '', number: number});
+                numberInput.value = '';
+            }
+        }
+
+        async function callApi() {
+            try {
+                const response = await fetch(url+'/data_transfer');
+                const data = await response.json();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Call the function every 2 seconds
+        setInterval(callApi, 2000); // 2000 m
+
+    
+        // Request data from the server
+        function getData() {
+            socket.emit('get_data');
+            socket.emit('get_highest_number');
+
+        }
+
+        
+        // Request data every second
+        setInterval(getData, 1000);
+    </script>
+</body>
+</html>
