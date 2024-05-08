@@ -1,0 +1,180 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.herobanner {
+    width: 100%;
+    text-align: center;
+    background: #ebebeb;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input {
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+button {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+.topInfo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.innerFormNumber form#person-form {
+    padding: 30px;
+    background: #fff;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+form#person-form .formInput label {
+    font-size: 16px;
+    margin-bottom: 10px;
+    display: inline-block;
+    width: 100%;
+}
+
+form#person-form span.inNerInput {
+    width: 100%;
+    display: inline-block;
+    position: relative;
+}
+
+form#person-form span.inNerInput input {
+    padding: 14px;
+    font-size: 18px;
+    line-height: normal;
+    padding-right: 130px;
+    border-radius: 6px;
+    margin: 0;
+}
+
+.datanocketList {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+.datanocketList .primary {
+    width: 50%;
+}
+
+.datanocketList .secondary {
+    width: 50%;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+form#person-form span.inNerInput button {
+    position: absolute;
+    width: 150px;
+    padding: 14px;
+    top: 4px;
+    right: 4px;
+    border-radius: 6px;
+    transition: 0.4s ease-in-out;
+}
+
+.secondarySidebar {
+    width: 100%;
+    max-width: 300px;
+    float: right;
+}
+
+.secondarySidebar ul#socket-list, .datanocketList ul {
+    background: #fff;
+    padding: 10px;
+    border: 1px solid #e3e3e3;
+    border-radius: 6px;
+    max-height: 300px;
+    overflow: auto;
+}
+
+.primary {
+    width: calc(100% - 310px);
+    float: left;
+}
+
+.secondarySidebar h2 {
+    margin-top: 0;
+}
+
+.secondarySidebar ul#socket-list li, .datanocketList ul li {
+    line-height: 33px;
+    border-bottom: 1px solid #e9e9e9;
+}
+
+.datanocketList ul li:last-child, .secondarySidebar ul#socket-list li:last-child {
+    border: none;
+}
+
+.datanocketList ul {
+    display: flex;
+    flex-wrap: wrap;
+}
