@@ -19,11 +19,14 @@ NODES = {
     "node2": "http://192.168.3.6:5001",
     "node3": "http://192.168.3.6:5002"
 }
-CURRENT_NODE = "node3"  # Unique identifier for this node
-LEADER = None  # Holds the current leader node
-LOAD_THRESHOLD = 100  # Threshold for high load
-TIME_WINDOW = 2  # Time window in minutes
-request_timestamps = deque()  # To hold request timestamps
+CURRENT_NODE = "node3" 
+LEADER = None  
+#LOAD_THRESHOLD = 100  # Threshold for high load
+#TIME_WINDOW = 2  # Time window in minutes
+#request_timestamps = deque()  # To hold request timestamps
+
+REQUEST_COUNT = 0
+HIGH_REQUEST =1000
 
 # Network setup functions
 def is_socket_online(host, port):
@@ -54,9 +57,15 @@ def get_port():
             return port
     return port
 
+# Used for Dynamic Method
+@app.before_request
+def before_request():
+    global REQUEST_COUNT
+    REQUEST_COUNT += 1
+
 # Database setup functions
 def create_connection():
-    return sqlite3.connect(f'{CURRENT_NODE}.db')  # Each node has its own database file
+    return sqlite3.connect(f'{CURRENT_NODE}.db') 
 
 def create_tables(conn):
     cursor = conn.cursor()
@@ -131,57 +140,87 @@ class Paxos:
 
 # Person model class to integrate CRDT and Paxos data
 class Person:
-    def __init__(self, name, number):
+    def __init__(self, name, number, use_crdt_only=False):
+        self.use_crdt_only = use_crdt_only
         self.name = CRDT()
-        self.number_paxos = Paxos(len(NODES))
-        self.number_crdt = CRDT()
+        self.number = CRDT() if use_crdt_only else Paxos(len(NODES))
         if name:
             self.name.insert(name)
         if number is not None:
-            self.number_paxos.accept(0, number)
-            self.number_crdt.insert(number)
+            if use_crdt_only:
+                self.number.insert(number)
+            else:
+                self.number.accept(0, number)
 
     def save(self):
-        max_number = self.decide_sync_method()
         with create_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO person_numbers (number) VALUES (?)", (max_number,))
+            if self.name.get_value():
+                cursor.execute("INSERT INTO person_names (name) VALUES (?)", (self.name.get_value(),))
+            if self.use_crdt_only:
+                cursor.execute("INSERT INTO person_numbers (number) VALUES (?)", (self.number.get_value(),))
+            else:
+                max_number = int(self.number.learn())
+                cursor.execute("INSERT INTO person_numbers (number) VALUES (?)", (max_number,))
             conn.commit()
 
-    def decide_sync_method(self):
-        """Decide whether to use Paxos or CRDT based on system load."""
-        recent_request_count = count_recent_requests()
-        if recent_request_count >= LOAD_THRESHOLD:
-            print("Using CRDT for number synchronization.")
-            return self.number_crdt.get_value()
-        else:
-            print("Using Paxos for number synchronization.")
-            return int(self.number_paxos.learn())
-
     @staticmethod
-    def get_all():
+    def get_all(use_crdt_only=False):
         with create_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT name FROM person_names")
+            if not use_crdt_only:
+                cursor.execute("SELECT name FROM person_names")
+            else:
+                cursor.execute("SELECT name FROM person_names WHERE name NOT IN (SELECT name FROM person_numbers)")
             return cursor.fetchall()
+        
+    @staticmethod
+    def switch_to_crdt_only():
+        global USE_CRDT_ONLY
+        USE_CRDT_ONLY = True        
 
-def count_recent_requests():
-    """Count requests within the last TIME_WINDOW minutes."""
-    now = datetime.now()
-    time_threshold = now - timedelta(minutes=TIME_WINDOW)
-    while request_timestamps and request_timestamps[0] < time_threshold:
-        request_timestamps.popleft()
-    return len(request_timestamps)
+# Paxos functions for proposer and acceptor
+def proposer(paxos, value):
+    paxos.elect_leader()
+    if paxos.leader == CURRENT_NODE:
+        proposal_number = paxos.prepare()
+        promises = []
+        for node_name, node_url in NODES.items():
+            response = send_prepare_request(node_url, proposal_number)
+            if response:
+                promises.append(response)
+        if paxos.reach_quorum(promises):
+            for node_name, node_url in NODES.items():
+                send_accept_request(node_url, proposal_number, value)
 
-@socketio.on('update_data')
-def update_data(data):
-    """Update data and count the load dynamically."""
-    now = datetime.now()
-    request_timestamps.append(now)
+def send_prepare_request(node_url, proposal_number):
+    try:
+        response = requests.post(f"{node_url}/prepare", json={'proposal_number': proposal_number})
+        if response.status_code == 200:
+            return response.json()['promised'], response.json()['accepted_proposal'], response.json()['accepted_value']
+    except requests.RequestException as e:
+        print(f"Failed to send prepare request to {node_url}: {str(e)}")
+    return None
 
-    new_person = Person(data['name'], data['number'])
-    new_person.save()
-    socketio.emit('data_updated', data)
+def send_accept_request(node_url, proposal_number, value):
+    try:
+        response = requests.post(f"{node_url}/accept", json={'proposal_number': proposal_number, 'value': value})
+        return response.status_code == 200
+    except requests.RequestException as e:
+        print(f"Failed to send accept request to {node_url}: {str(e)}")
+    return False
+
+@app.route('/prepare', methods=['POST'])
+def prepare_request():
+    data = request.get_json()
+    promised, accepted_proposal, accepted_value = paxos_instance.promise(data['proposal_number'])
+    return jsonify({'promised': promised, 'accepted_proposal': accepted_proposal, 'accepted_value': accepted_value})
+
+@app.route('/accept', methods=['POST'])
+def accept_request():
+    data = request.get_json()
+    accepted = paxos_instance.accept(int(data['proposal_number']), int(data['value']))
+    return jsonify({'accepted': accepted})
 
 @app.route('/get_data', methods=['GET'])
 def get_data():
@@ -192,6 +231,24 @@ def get_data():
         max_number = cursor.fetchone()[0]
     data = [{'name': person[0], "max_number": max_number} for person in persons]
     return jsonify({'data': data})
+
+@app.route('/get_load', methods=['GET'])
+def get_load():
+    global REQUEST_COUNT
+    return jsonify({'load': REQUEST_COUNT})
+
+
+@app.route('/switch_to_crdt_only', methods=['POST'])
+def switch_to_crdt_only():
+    global REQUEST_COUNT
+    initial_load = 1
+    Person.switch_to_crdt_only()
+    new_load = REQUEST_COUNT
+    load_increased = new_load > initial_load
+    if load_increased:
+        REQUEST_COUNT = 0
+    return jsonify({'message': 'Switched to using only CRDT for both names and numbers', 'load_increased': load_increased})
+
 
 @app.route('/')
 def index():
@@ -204,6 +261,20 @@ def periodic_sync():
     print("Syncing data with other nodes...")
     proposer(paxos_instance, "new_value")
     threading.Timer(30, periodic_sync).start()
+
+
+
+@socketio.on('update_data')
+def update_data(data):
+    if REQUEST_COUNT > HIGH_REQUEST:
+        change_P_N = True
+    else:
+        change_P_N = False
+    new_person = Person(data['name'], data['number'], change_P_N)
+    new_person.save()
+    socketio.emit('data_updated', data)
+# Initialize Paxos with number of nodes
+
 
 @socketio.on('get_socket_list')
 def send_socket_list():
@@ -229,6 +300,7 @@ def get_highest_number():
         cursor.execute("SELECT MAX(number) FROM person_numbers")
         max_number = cursor.fetchone()[0]
     socketio.emit('highest_number', {'number': max_number})
+paxos_instance = Paxos(len(NODES))
 
 @app.route('/data_transfer', methods=['GET'])
 def hit_api_and_update_table():
@@ -257,13 +329,15 @@ def hit_api_and_update_table():
                 cursor.execute("SELECT MAX(number) FROM person_numbers")
                 current_max_number = cursor.fetchone()[0]
                 if current_max_number < max(max_number):
-                    new_person = Person(None, max(max_number))
+                    if REQUEST_COUNT > HIGH_REQUEST:
+                        change_P_N = True
+                    else:
+                        change_P_N = False
+                    new_person = Person(None, max(max_number), change_P_N)
                     new_person.save()
         except Exception as error:
             pass
     return 'Done'
-
-paxos_instance = Paxos(len(NODES))
 
 if __name__ == '__main__':
     port = 5002

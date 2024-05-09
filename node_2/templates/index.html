@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Socket.IO Client</title>
+    <title>Node Two</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -184,17 +184,17 @@
 <body>
     <section class="herobanner">
         <div class="container">
-            <h2>Highest Number <span id="highest-number"></span></h2>
+            <h2>Node 2    -    Accepted Proposal Number: <span id="highest-number"></span></h2>
         </div>
     </section>
 
     <section class="innerFormNumber">
         <div class="container">
             <div class="primary">
-                <h3>Person Data</h3>
+                <h3>Data Entry</h3>
                 <form id="person-form">
                     <div class="formInput">
-                        <label for="name">Name:</label>
+                        <label for="name">Person Name:</label>
                         <span class="inNerInput">
                             <input type="text" id="name" name="name" >
                             <button type="button" onclick="addPerson()">Add Person</button>
@@ -211,14 +211,14 @@
                     </div>
                 </form>
                 <div class="datanocketList">
-                    <h3>Person Name</h3>
+                    <h3>Person Name List</h3>
                     <ul>
                         <li  id="data-list"></li>
                     </ul>
                 </div>                
             </div>
             <div class="secondarySidebar">
-                <h3>Active Sockets</h3>
+                <h3>Active Nodes</h3>
                 <ul id="socket-list"></ul>
             </div>
         </div>
@@ -243,7 +243,7 @@
             socketList.innerHTML = '';
             data.sockets.forEach(function(port) {
                 var item = document.createElement('li');
-                item.textContent = `Socket ${port}`;
+                item.textContent = `Node On Port: ${port}`;
                 socketList.appendChild(item);
             });
         });
