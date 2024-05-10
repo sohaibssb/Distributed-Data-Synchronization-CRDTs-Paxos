@@ -379,6 +379,7 @@
     
         // Request data from the server
         function getData() {
+            socket.emit('get_socket_list');
             socket.emit('get_data');
             socket.emit('get_highest_number');
 

@@ -11,6 +11,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta
 import urllib3
 
+
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app)
@@ -25,7 +26,7 @@ LEADER = None
 #TIME_WINDOW = 2  # Time window in minutes
 #request_timestamps = deque()  # To hold request timestamps
 
-REQUEST_COUNT = 0
+REQUEST_COUNT = 0 # Keep count of all incoming requests made to the application
 HIGH_REQUEST =1000
 
 # Network setup functions
@@ -91,7 +92,8 @@ class CRDT:
         self.removed.add(index)
 
     def merge(self, other):
-        self.added |= {(value, index) for value, index in other.added if index not in self.removed}
+        self.added |= {(value, index)
+                       for value, index in other.added if index not in self.removed}
         self.removed |= {index for index in other.removed}
 
     def get_value(self):
@@ -328,6 +330,8 @@ def hit_api_and_update_table():
             if max_number:
                 cursor.execute("SELECT MAX(number) FROM person_numbers")
                 current_max_number = cursor.fetchone()[0]
+                current_max_number = current_max_number if isinstance(
+                    current_max_number, int) else 0
                 if current_max_number < max(max_number):
                     if REQUEST_COUNT > HIGH_REQUEST:
                         change_P_N = True
@@ -338,6 +342,9 @@ def hit_api_and_update_table():
         except Exception as error:
             pass
     return 'Done'
+
+
+
 
 if __name__ == '__main__':
     port = 5000

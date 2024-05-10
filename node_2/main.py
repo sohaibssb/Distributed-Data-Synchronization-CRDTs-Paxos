@@ -328,6 +328,8 @@ def hit_api_and_update_table():
             if max_number:
                 cursor.execute("SELECT MAX(number) FROM person_numbers")
                 current_max_number = cursor.fetchone()[0]
+                current_max_number = current_max_number if isinstance(
+                    current_max_number, int) else 0
                 if current_max_number < max(max_number):
                     if REQUEST_COUNT > HIGH_REQUEST:
                         change_P_N = True
