@@ -341,6 +341,21 @@ def hit_api_and_update_table():
             pass
     return 'Done'
 
+# Adding new route for Testing POST methods for CRDT, Posting names only
+@app.route('/add_name', methods=['POST'])
+def add_name():
+    data = request.get_json()
+    name = data.get('name') 
+
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400  
+
+    new_person = Person(name, None, use_crdt_only=True)
+    new_person.save()
+
+    return jsonify({'message': f'Name "{name}" added successfully'})
+
+
 if __name__ == '__main__':
     port = 5002
     socketio.run(app, host='0.0.0.0', port=port)

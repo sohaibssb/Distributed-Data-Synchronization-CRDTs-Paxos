@@ -275,9 +275,10 @@ def update_data(data):
     new_person = Person(data['name'], data['number'], change_P_N)
     new_person.save()
     socketio.emit('data_updated', data)
+
+
+
 # Initialize Paxos with number of nodes
-
-
 @socketio.on('get_socket_list')
 def send_socket_list():
     ip_address = get_network_ip()
@@ -343,7 +344,19 @@ def hit_api_and_update_table():
             pass
     return 'Done'
 
+# Adding new route for Testing POST methods for CRDT, Posting names only
+@app.route('/add_name', methods=['POST'])
+def add_name():
+    data = request.get_json()
+    name = data.get('name') 
 
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400  
+
+    new_person = Person(name, None, use_crdt_only=True)
+    new_person.save()
+
+    return jsonify({'message': f'Name "{name}" added successfully'})
 
 
 if __name__ == '__main__':
