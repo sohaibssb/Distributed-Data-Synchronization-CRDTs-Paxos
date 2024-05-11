@@ -19,3 +19,5 @@ urllib3==2.2.1
 Werkzeug==3.0.3
 wsproto==1.2.0
 locust==2.5.1
+matplotlib==3.5.1
+numpy==1.22.0
