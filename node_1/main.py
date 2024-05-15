@@ -27,7 +27,8 @@ LEADER = None
 #request_timestamps = deque()  # To hold request timestamps
 
 REQUEST_COUNT = 0 # Keep count of all incoming requests made to the application
-HIGH_REQUEST =1000
+HIGH_REQUEST = 100
+USE_CRDT_ONLY = False
 
 # Network setup functions
 def is_socket_online(host, port):
@@ -61,8 +62,15 @@ def get_port():
 # Used for Dynamic Method
 @app.before_request
 def before_request():
-    global REQUEST_COUNT
-    REQUEST_COUNT += 1
+    global REQUEST_COUNT, USE_CRDT_ONLY
+    ignored_paths = ['/socket.io', '/get_data', '/data_transfer']
+    if not any(path in request.path for path in ignored_paths):
+        REQUEST_COUNT += 1
+    app.logger.debug(f"Handled request to {request.path}. Current request count: {REQUEST_COUNT}")
+
+    if REQUEST_COUNT > HIGH_REQUEST and not USE_CRDT_ONLY:
+        switch_to_crdt_only()
+
 
 # Database setup functions
 def create_connection():
@@ -179,7 +187,8 @@ class Person:
     @staticmethod
     def switch_to_crdt_only():
         global USE_CRDT_ONLY
-        USE_CRDT_ONLY = True        
+        USE_CRDT_ONLY = True 
+        print("!!!!!!!!!!!!!!! \n Switched to CRDT only mode \n !!!!!!!!!!!!!!!")       
 
 # Paxos functions for proposer and acceptor
 def proposer(paxos, value):
@@ -266,17 +275,22 @@ def periodic_sync():
 
 
 
+# @socketio.on('update_data')
+# def update_data(data):
+#     if REQUEST_COUNT > HIGH_REQUEST:
+#         change_P_N = True
+#     else:
+#         change_P_N = False
+#     new_person = Person(data['name'], data['number'], change_P_N)
+#     new_person.save()
+#     socketio.emit('data_updated', data)
+
 @socketio.on('update_data')
 def update_data(data):
-    if REQUEST_COUNT > HIGH_REQUEST:
-        change_P_N = True
-    else:
-        change_P_N = False
-    new_person = Person(data['name'], data['number'], change_P_N)
+    global USE_CRDT_ONLY
+    new_person = Person(data['name'], data['number'], use_crdt_only=USE_CRDT_ONLY)
     new_person.save()
     socketio.emit('data_updated', data)
-
-
 
 # Initialize Paxos with number of nodes
 @socketio.on('get_socket_list')
@@ -357,6 +371,7 @@ def add_name():
     new_person.save()
 
     return jsonify({'message': f'Name "{name}" added successfully'})
+
 
 
 if __name__ == '__main__':

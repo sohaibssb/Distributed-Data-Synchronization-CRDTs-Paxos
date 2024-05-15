@@ -69,7 +69,7 @@ def run_test(node_urls, max_requests, step):
     for req, time_sync in zip(request_counts, synchronization_times):
         print(f"{req} requests per node: {time_sync:.4f} seconds to synchronize.")
 
-node_urls = ["http://10.5.48.205:5000/", "http://10.5.48.205:5001/", "http://10.5.48.205:5002/"]
+node_urls = ["http://172.20.10.6:5000/", "http://172.20.10.6:5001/", "http://172.20.10.6:5002/"]
 max_requests = 200
 step = 5 
 run_test(node_urls, max_requests, step)

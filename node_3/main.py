@@ -26,7 +26,8 @@ LEADER = None
 #request_timestamps = deque()  # To hold request timestamps
 
 REQUEST_COUNT = 0
-HIGH_REQUEST =1000
+HIGH_REQUEST =100
+USE_CRDT_ONLY = False
 
 # Network setup functions
 def is_socket_online(host, port):
@@ -177,7 +178,8 @@ class Person:
     @staticmethod
     def switch_to_crdt_only():
         global USE_CRDT_ONLY
-        USE_CRDT_ONLY = True        
+        USE_CRDT_ONLY = True 
+        print("!!!!!!!!!!!!!!! \n Switched to CRDT only mode \n !!!!!!!!!!!!!!!")         
 
 # Paxos functions for proposer and acceptor
 def proposer(paxos, value):
@@ -263,19 +265,24 @@ def periodic_sync():
     threading.Timer(30, periodic_sync).start()
 
 
-
 @socketio.on('update_data')
 def update_data(data):
-    if REQUEST_COUNT > HIGH_REQUEST:
-        change_P_N = True
-    else:
-        change_P_N = False
-    new_person = Person(data['name'], data['number'], change_P_N)
+    global USE_CRDT_ONLY
+    new_person = Person(data['name'], data['number'], use_crdt_only=USE_CRDT_ONLY)
     new_person.save()
     socketio.emit('data_updated', data)
+
+# @socketio.on('update_data')
+# def update_data(data):
+#     if REQUEST_COUNT > HIGH_REQUEST:
+#         change_P_N = True
+#     else:
+#         change_P_N = False
+#     new_person = Person(data['name'], data['number'], change_P_N)
+#     new_person.save()
+#     socketio.emit('data_updated', data)
+
 # Initialize Paxos with number of nodes
-
-
 @socketio.on('get_socket_list')
 def send_socket_list():
     ip_address = get_network_ip()
