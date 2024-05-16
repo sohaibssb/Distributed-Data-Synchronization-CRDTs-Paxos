@@ -26,8 +26,8 @@ LEADER = None
 #TIME_WINDOW = 2  # Time window in minutes
 #request_timestamps = deque()  # To hold request timestamps
 
-REQUEST_COUNT = 0 # Keep count of all incoming requests made to the application
-HIGH_REQUEST = 100
+REQUEST_COUNT = 50 # Keep count of all incoming requests made to the application
+HIGH_REQUEST = 50
 USE_CRDT_ONLY = False
 
 # Network setup functions
@@ -188,7 +188,7 @@ class Person:
     def switch_to_crdt_only():
         global USE_CRDT_ONLY
         USE_CRDT_ONLY = True 
-        print("!!!!!!!!!!!!!!! \n Switched to CRDT only mode \n !!!!!!!!!!!!!!!")       
+        print("\n ########################## \n Switched to CRDT only mode \n ########################## \n")       
 
 # Paxos functions for proposer and acceptor
 def proposer(paxos, value):
@@ -287,10 +287,18 @@ def periodic_sync():
 
 @socketio.on('update_data')
 def update_data(data):
-    global USE_CRDT_ONLY
+    global REQUEST_COUNT, USE_CRDT_ONLY
+    REQUEST_COUNT += 1 
+
+    print(f"!!!!!!!!!! Received WebSocket data: {data}. Current request count: {REQUEST_COUNT}")
+
+    if REQUEST_COUNT > HIGH_REQUEST and not USE_CRDT_ONLY:
+        switch_to_crdt_only()
+        
     new_person = Person(data['name'], data['number'], use_crdt_only=USE_CRDT_ONLY)
     new_person.save()
-    socketio.emit('data_updated', data)
+    socketio.emit('data_updated', data)  
+
 
 # Initialize Paxos with number of nodes
 @socketio.on('get_socket_list')

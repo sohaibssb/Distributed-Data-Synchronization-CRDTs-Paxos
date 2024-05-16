@@ -4,7 +4,7 @@ import time
 def is_node_online(node):
     """ Check if a node is online by sending a simple GET request. """
     try:
-        response = requests.get(f"{node}/get_data", timeout=5)  # Timeout to ensure prompt response
+        response = requests.get(f"{node}/get_data", timeout=5)  
         return response.status_code == 200
     except requests.RequestException as e:
         print(f"Error contacting {node}: {e}")
@@ -15,7 +15,7 @@ def fetch_data_from_node(node):
     try:
         response = requests.get(f"{node}/get_data", timeout=5)
         if response.status_code == 200:
-            return response.json()['data']  # Assuming the response contains a 'data' key
+            return response.json()['data'] 
         else:
             print(f"Error fetching data from {node}: {response.status_code}")
             return None

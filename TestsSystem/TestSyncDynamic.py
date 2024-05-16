@@ -27,18 +27,18 @@ class WebSocketUser:
     def send_and_verify_data(self):
         num_requests = self.step
         while num_requests <= self.max_requests:
-            start_time = time.time()  # Initialize start_time at the beginning of the request loop
+            start_time = time.time() 
             print(f"Sending {num_requests} requests per node...")
             for node, client in self.sio_clients.items():
                 for i in range(num_requests):
-                    data = {'name': f'TestUser {num_requests * 100 + i}', 'number': num_requests * 100 + i}
+                    data = {'name': f'TestUser {num_requests * 1 + i}', 'number': num_requests * 1 + i} # was 100 100 
                     if client.connected:
                         client.emit('update_data', data)
-                        print(f"Sending data to {node}: {data}")
+                        #print(f"Sending data to {node}: {data}")
 
             synchronized = False
             while not synchronized:
-                time.sleep(5)  # Pause before checking synchronization status
+                time.sleep(5)  
                 synchronized = self.verify_sync()
                 if not synchronized:
                     print("Data not synchronized, waiting...")
@@ -86,8 +86,8 @@ class WebSocketUser:
 
 def main():
     nodes = ["http://10.5.48.205:5000", "http://10.5.48.205:5001", "http://10.5.48.205:5002"]
-    max_requests = 40
-    step = 5
+    max_requests = 600
+    step = 150
     ws_client = WebSocketUser(nodes, max_requests, step)
     try:
         ws_client.send_and_verify_data()
